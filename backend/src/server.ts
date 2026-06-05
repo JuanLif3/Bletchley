@@ -1,8 +1,13 @@
+import 'reflect-metadata';
 import { buildApp } from './app';
 import { env } from './config/env.config';
+import { AppDataSource } from './config/database.config';
 
 async function startServer() {
     try {
+        await AppDataSource.initialize();
+        console.log('✅ Base de datos conectada a Neon');
+
         const app = await buildApp();
 
         await app.listen({ port: env.PORT, host: '0.0.0.0' });
@@ -16,5 +21,4 @@ async function startServer() {
         process.exit(1);
     }
 }
-
 startServer();

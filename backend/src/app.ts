@@ -4,6 +4,7 @@ import helmet from '@fastify/helmet';
 import websocket from '@fastify/websocket';
 import { fastifyConfig } from './config/fastify.config';
 import { env } from './config/env.config';
+import { registerRoutes } from './routes';
 
 export async function buildApp() {
     const app = Fastify(fastifyConfig);
@@ -16,6 +17,9 @@ export async function buildApp() {
 
     await app.register(helmet);
     await app.register(websocket);
+
+    // Registrar rutas de la API
+    await registerRoutes(app);
 
     // Health check
     app.get('/health', async () => {
