@@ -40,4 +40,21 @@ export class UserRepository{
         const result = await this.repository.delete(id);
         return  result.affected ? result.affected > 0 : false;
     }
+
+    async updateLastSeen(id: string): Promise<void> {
+        await this.repository.update(id, {lastSeen: new Date()});
+    }
+
+    async findByIdWithRelations(id: string): Promise<User | null> {
+        return await this.repository.findOne({
+            where: { id },
+            relations: {
+                sentMessages: false, // ! No cargar mensajes por defecto por rendimiento
+                receivedMessages: false,
+                participantIn: true,
+                invitesCreated: false,
+                invitesUsed: false,
+            },
+        });
+    }
 }
