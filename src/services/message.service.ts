@@ -4,7 +4,7 @@ import { Message } from '../models/Message.model';
 import {
     SendMessageDto,
     MessageResponseDto,
-    SendMessageResponseDTO,
+    SendMessageResponseDto,
 } from '../dtos/message.dto';
 
 export class MessageService {
@@ -16,7 +16,7 @@ export class MessageService {
         this.userRepository = new UserRepository();
     }
 
-    async sendMessage(senderId: string, data: SendMessageDto): Promise<SendMessageResponseDTO> {
+    async sendMessage(senderId: string, data: SendMessageDto): Promise<SendMessageResponseDto> {
         // ! Verificar que el usuario existe
         const user = await this.userRepository.findById(senderId);
         if (!user) {
@@ -40,7 +40,7 @@ export class MessageService {
         };
     }
 
-    async getChatMessages(chatId: string, limit: number = 50, offset: number = 0): Promise<MessageResponseDTO[]> {
+    async getChatMessages(chatId: string, limit: number = 50, offset: number = 0): Promise<MessageResponseDto[]> {
         const messages = await this.messageRepository.findByChatId(chatId, limit, offset);
 
         // ! Invertir para orden cronológico (más antiguos primero)

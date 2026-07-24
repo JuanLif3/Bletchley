@@ -22,7 +22,7 @@ export interface MessageResponseDto {
     createdAt: Date;
 }
 
-export interface SendMessageResponseDTO {
+export interface SendMessageResponseDto {
     id: string;
     chatId: string;
     senderId: string;

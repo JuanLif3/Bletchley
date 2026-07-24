@@ -1,0 +1,116 @@
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    flex: 1;
+    background: #0e111b;
+    min-width: 0;
+}
+
+.chat-header {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.75rem;
+    background: rgba(17, 20, 31, 0.8);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    flex-shrink: 0;
+}
+
+.chat-back-btn {
+    background: none;
+    border: none;
+    color: #6b7280;
+    font-size: 1.3rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    margin-right: 0.75rem;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: none; /* Oculto por defecto en desktop */
+}
+
+.chat-back-btn:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: #e8edf5;
+}
+
+.chat-header-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.chat-header-name {
+    color: #e8edf5;
+    font-weight: 500;
+    font-size: 0.95rem;
+    letter-spacing: -0.2px;
+}
+
+.chat-header-status {
+    color: #4ade80;
+    font-size: 0.7rem;
+    font-weight: 300;
+    margin-top: 0.05rem;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.25rem 1.75rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    color: #4a4f5e;
+    font-weight: 300;
+}
+
+.chat-empty {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #3a3f4e;
+}
+
+.chat-empty .icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.3;
+}
+
+.chat-empty p {
+    margin: 0.1rem 0;
+    font-weight: 300;
+}
+
+.chat-empty .hint {
+    font-size: 0.8rem;
+    color: #2a2f3e;
+}
+
+.chat-wrapper.hidden {
+    display: none;
+}
+
+/* Responsive: pantallas pequeñas */
+@media (max-width: 768px) {
+    .chat-back-btn {
+        display: block; /* Mostrar en móvil */
+    }
+
+    .chat-header {
+        padding: 0.75rem 1rem;
+    }
+
+    .chat-messages {
+        padding: 0.75rem 1rem;
+    }
+}

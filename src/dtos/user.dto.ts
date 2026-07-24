@@ -18,19 +18,19 @@ export interface UpdateUserDto {
 }
 
 // * Response DTOs
-export interface UserResponseDTO {
+export interface UserResponseDto {
     id: string;
     username: string;
     email: string;
     createdAt: Date;
 }
 
-export interface AuthResponseDTO {
+export interface AuthResponseDto {
     token: string;
-    user: UserResponseDTO
+    user: UserResponseDto
 }
 
-export interface UpdateUserResponseDTO {
+export interface UpdateUserResponseDto {
     id: string;
     username: string;
     email: string;
@@ -38,7 +38,7 @@ export interface UpdateUserResponseDTO {
     message: string;
 }
 
-export interface DeleteUserResponseDTO {
+export interface DeleteUserResponseDto {
     success: boolean;
     message: string;
 }

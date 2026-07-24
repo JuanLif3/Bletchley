@@ -1,0 +1,100 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.app {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  background: #0b0d14;
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+}
+
+.app-container {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  background: #11141f;
+  overflow: hidden;
+}
+
+/* Contenedor principal con dos columnas */
+.app-main {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Lista de chats - siempre visible en desktop */
+.chat-list-wrapper {
+  width: 340px;
+  min-width: 340px;
+  height: 100vh;
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Contenedor del chat - ocupa el resto */
+.chat-wrapper {
+  flex: 1;
+  height: 100vh;
+  overflow: hidden;
+  background: #0e111b;
+}
+
+/* Botón logout minimalista */
+.logout-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 8px 18px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #6b7280;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-family: 'Inter', sans-serif;
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+}
+
+.logout-btn:hover {
+  background: rgba(239, 68, 68, 0.08);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.15);
+}
+
+/* Responsive: pantallas pequeñas */
+@media (max-width: 768px) {
+  .chat-list-wrapper {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .chat-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    background: #0e111b;
+  }
+
+  .chat-wrapper.hidden {
+    display: none;
+  }
+
+  .chat-list-wrapper.hidden {
+    display: none;
+  }
+}

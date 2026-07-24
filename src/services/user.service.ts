@@ -3,13 +3,13 @@ import * as jwt from 'jsonwebtoken';
 import { UserRepository } from '../repositories/user.repository';
 import { User } from '../models/User.model';
 import {
-    RegisterUserDTO,
-    LoginUserDTO,
-    UpdateUserDTO,
-    UserResponseDTO,
-    AuthResponseDTO,
-    UpdateUserResponseDTO,
-    DeleteUserResponseDTO,
+    RegisterUserDto,
+    LoginUserDto,
+    UpdateUserDto,
+    UserResponseDto,
+    AuthResponseDto,
+    UpdateUserResponseDto,
+    DeleteUserResponseDto,
 } from '../dtos/user.dto';
 import { env } from '../config/env.config';
 
@@ -21,7 +21,7 @@ export class UserService {
     }
 
     // * Registrar usuario
-    async register(data: RegisterUserDTO): Promise<UserResponseDTO> {
+    async register(data: RegisterUserDto): Promise<UserResponseDto> {
         // Verificar email existente
         const existingEmail = await this.userRepository.findByEmail(data.email);
         if (existingEmail) {
@@ -54,7 +54,7 @@ export class UserService {
     }
 
     // * Login de usuario
-    async login(data: LoginUserDTO): Promise<AuthResponseDTO> {
+    async login(data: LoginUserDto): Promise<AuthResponseDto> {
         const user = await this.userRepository.findByEmail(data.email);
         if (!user) {
             throw new Error('Credenciales inválidas');
@@ -87,7 +87,7 @@ export class UserService {
     }
 
     // * Obtener usuario por ID
-    async findById(id: string): Promise<UserResponseDTO | null> {
+    async findById(id: string): Promise<UserResponseDto | null> {
         const user = await this.userRepository.findById(id);
         if (!user) return null;
 
@@ -100,7 +100,7 @@ export class UserService {
     }
 
     // * Actualizar usuario
-    async update(userId: string, data: UpdateUserDTO): Promise<UpdateUserResponseDTO> {
+    async update(userId: string, data: UpdateUserDto): Promise<UpdateUserResponseDto> {
         const user = await this.userRepository.findById(userId);
         if (!user) {
             throw new Error('Usuario no encontrado');
@@ -151,7 +151,7 @@ export class UserService {
     }
 
     // * Eliminar usuario
-    async delete(userId: string): Promise<DeleteUserResponseDTO> {
+    async delete(userId: string): Promise<DeleteUserResponseDto> {
         const user = await this.userRepository.findById(userId);
         if (!user) {
             throw new Error('Usuario no encontrado');

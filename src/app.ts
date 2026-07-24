@@ -5,8 +5,8 @@ import websocket from '@fastify/websocket';
 import { env } from './config/env.config';
 import { userRoutes } from './routes/user.routes';
 import { messageRoutes } from './routes/message.routes';
+import { chatRoutes } from './routes/chat.routes';
 import { ChatWebSocketHandler } from './websockets/chat.handler';
-
 
 export async function buildApp() {
   const app = Fastify({
@@ -18,9 +18,10 @@ export async function buildApp() {
   await app.register(helmet);
   await app.register(websocket);
 
-  // * Registrar rutas
+  // * Registrar rutas HTTP
   await userRoutes(app);
   await messageRoutes(app);
+  await chatRoutes(app);
 
   // * Registrar WebSocket
   const chatHandler = new ChatWebSocketHandler();

@@ -9,6 +9,7 @@ interface WebSocketClient{
     socket: any;
     userId: string;
     chatId?: string;
+    username: string;
 }
 
 export class ChatWebSocketHandler {
@@ -36,7 +37,6 @@ export class ChatWebSocketHandler {
                 return;
             }
 
-
             // ! Verificar token
             const decoded = jwt.verify(token, env.JWT_SECRET) as JWTUser;
 
@@ -56,6 +56,7 @@ export class ChatWebSocketHandler {
             this.clients.set(clientId, {
                 socket,
                 userId: decoded.userId,
+                username: user.username,
             });
 
             console.log(`Usuario ${user.username} conectado`);
@@ -101,6 +102,23 @@ export class ChatWebSocketHandler {
             // ! Si el mensaje es para unirse a una chat
             if (parsed.type === 'join') {
                 client.chatId = parsed.chatId;
+                console.log(`${client.username} se unió al chat ${parsed.chatId}`);
+                return;
+            }
+
+            // ! Indicador de escritura
+            if (parsed.type === 'typing') {
+                const response = {
+                    type: 'typing',
+                    data: {
+                        chatId: parsed.chatId,
+                        userId: client.userId,
+                        username: client.username,
+                        isTyping: parsed.isTyping
+                    }
+                };
+                const responseString = JSON.stringify(response);
+                this.broadcastToChat(parsed.chatId, responseString, clientId);
                 return;
             }
 
@@ -118,29 +136,32 @@ export class ChatWebSocketHandler {
                 const sender = await this.userRepository.findById(client.userId);
 
                 // ! Crear respuesta para broadcast
-                const respopnse = {
+                const response = {
                     type: 'message',
                     data: {
                         id: savedMessage.id,
                         chatId: savedMessage.chatId,
-                        senderId: savedMessage.chatId,
-                        senderUsername: sender?.username || 'Usuario',
+                        senderId: savedMessage.senderId,
+                        senderUsername: client.username,
                         content: savedMessage.content,
                         createdAt: savedMessage.createdAt,
                     }
                 };
 
-                // ! Enviar a todos los clientes conectados al mismo chat
-                const responseString = JSON.stringify(respopnse);
-                for (const [id, otherClient] of this.clients) {
-                    if (otherClient.chatId === chatId) {
-                        otherClient.socket.send(responseString);
-                    }
-                }
+                const responseString = JSON.stringify(response);
+                this.broadcastToChat(chatId, responseString);
             }
 
         } catch (error) {
-            console.error('Error al progresar mensaje:', error);
+            console.error('Error en mensaje WebSocket:', error);
+        }
+    }
+
+    private broadcastToChat(chatId: string, message: string, excludeClientId?: string) {
+        for (const [id, client] of this.clients) {
+            if (id !== excludeClientId && client.chatId === chatId) {
+                client.socket.send(message);
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from './User.model';
+import { Chat } from './Chat.model';
 
 @Entity('messages')
 export class Message {
@@ -18,8 +19,11 @@ export class Message {
     @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
     createdAt!: Date;
 
-    // * Relación con el usuario que envió el mensaje
     @ManyToOne(() => User)
     @JoinColumn({ name: 'sender_id' })
     sender!: User;
+
+    @ManyToOne(() => Chat, (chat) => chat.messages, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'chat_id' })
+    chat!: Chat;
 }

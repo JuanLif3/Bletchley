@@ -1,0 +1,27 @@
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #3a3f4e;
+    font-family: 'Inter', sans-serif;
+    font-weight: 300;
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.2;
+}
+
+.empty-state-title {
+    font-size: 0.95rem;
+    color: #4a4f5e;
+}
+
+.empty-state-hint {
+    font-size: 0.8rem;
+    color: #2a2f3e;
+    margin-top: 0.15rem;
+}
