@@ -28,7 +28,7 @@ export const loginSchema = z.object({
 export const updateUserSchema = z.object({
     username: z
         .string()
-        .min(30, 'El nombre de usuario debe tener al menos 3 caracteres')
+        .min(3, 'El nombre de usuario debe tener al menos 3 caracteres')
         .max(30, 'El nombre de usuario no puede exceder 30 caracteres')
         .regex(/^[a-zA-Z0-9_]+$/, 'El nombre de usuario solo puede contener letras, números y guión bajo')
         .optional(),
