@@ -78,8 +78,7 @@ export class InviteService {
             throw new Error('El usuario que te invitó ya no existe');
         }
 
-        // 4. ⭐ BUSCAR CHAT EXISTENTE (ANTES de crear uno nuevo)
-        const existingChat = await this.findExistingChat(userId, invite.creatorId);
+        const existingChat = await this.chatRepository.findOneOnOneChat(userId, invite.creatorId);
 
         if (existingChat) {
             // Marcar la invitación como usada

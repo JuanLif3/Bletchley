@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { inviteAPI } from '../services/api';
 import '../styles/AcceptInvite.css';
@@ -10,7 +10,14 @@ function AcceptInvite() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
 
+    // Esta referencia es el escudo contra el doble render de React
+    const hasFetched = useRef(false);
+
     useEffect(() => {
+        // Si ya hicimos la petición, cancelamos esta ejecución
+        if (hasFetched.current) return;
+        hasFetched.current = true; // Marcamos como ejecutado
+
         const acceptInvite = async () => {
             try {
                 const response = await inviteAPI.acceptInvite(token);
@@ -45,7 +52,6 @@ function AcceptInvite() {
         return (
             <div className="accept-invite-container">
                 <div className="accept-invite-card error">
-                    <div className="icon">⚠️</div>
                     <h2>Error</h2>
                     <p>{error}</p>
                     <button onClick={() => navigate('/')}>Volver al inicio</button>
