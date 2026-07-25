@@ -18,6 +18,13 @@ export class ChatRepository {
         return await this.participantRepository.save(participant);
     }
 
+    async getParticipants(chatId: string): Promise<ChatParticipant[]> {
+        return await this.participantRepository.find({
+            where: { chatId },
+            relations: ['user'],
+        });
+    }
+
     async findById(id: string): Promise<Chat | null> {
         return await this.chatRepository.findOne({
             where: { id },
@@ -45,20 +52,41 @@ export class ChatRepository {
     }
 
     async findOneOnOneChat(userId1: string, userId2: string): Promise<Chat | null> {
-        const participant1 = await this.participantRepository.find({
+        // ! Buscar participantes donde userId1 está presente
+        const participants1 = await this.participantRepository.find({
             where: { userId: userId1 },
             relations: ['chat', 'chat.participants'],
         });
 
-        for (const p of participant1) {
-            const chat = p.chat;
-            if (!chat.isGroup) {
-                const participants = chat.participants.map(p => p.userId);
-                if (participants.includes(userId2) && participants.includes(userId1)) {
-                    return chat;
-                }
+        // ! Buscar participantes donde userId2 está presente
+        const participants2 = await this.participantRepository.find({
+            where: { userId: userId2 },
+            relations: ['chat', 'chat.participants'],
+        });
+
+        // ! Obtener los IDs de los chats del usuario 1
+        const chatIds1 = participants1.map(p => p.chatId);
+        const chatIds2 = participants2.map(p => p.chatId);
+
+        // ! Encontrar chats que están en ambos conjuntos (intersección)
+        const commonChatIds = chatIds1.filter(id => chatIds2.includes(id));
+
+        if (commonChatIds.length === 0) {
+            return null;
+        }
+
+        // ! Verificar que el chat no sea grupal
+        for (const chatId of commonChatIds) {
+            const chat = await this.chatRepository.findOne({
+                where: { id: chatId, isGroup: false },
+                relations: ['participants'],
+            });
+
+            if (chat) {
+                return chat;
             }
         }
+
         return null;
     }
 

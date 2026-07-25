@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { chatAPI } from '../services/api';
 import '../styles/ChatList.css';
+import InviteManager from './InviteManager';
+
 function ChatList({ onSelectChat }) {
     const [chats, setChats] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -55,38 +57,43 @@ function ChatList({ onSelectChat }) {
                 <div className="user-info">{user?.username || 'Usuario'}</div>
             </div>
 
-            {chats.length === 0 ? (
-                <div className="chat-list-empty">
-                    <div className="icon">💬</div>
-                    <p>Sin conversaciones</p>
-                    <p className="hint">Inicia un chat con otro usuario</p>
-                </div>
-            ) : (
-                <div className="chat-list-items">
-                    {chats.map((chat) => (
-                        <div
-                            key={chat.id}
-                            className="chat-item"
-                            onClick={() => onSelectChat(chat.id)}
-                        >
-                            <div className={`chat-avatar ${chat.isGroup ? 'group' : ''}`}>
-                                {chat.isGroup ? '👥' : getInitials(chat.otherParticipant?.username)}
-                            </div>
-                            <div className="chat-info">
-                                <div className="chat-name">
-                                    {chat.isGroup ? chat.name : chat.otherParticipant?.username || 'Usuario'}
+            {/* Lista de chats */}
+            <div className="chat-list-scroll">
+                {chats.length === 0 ? (
+                    <div className="chat-list-empty">
+                        <div className="icon"></div>
+                        <p>Sin conversaciones</p>
+                        <p className="hint">Inicia un chat con otro usuario</p>
+                    </div>
+                ) : (
+                    <div className="chat-list-items">
+                        {chats.map((chat) => (
+                            <div
+                                key={chat.id}
+                                className="chat-item"
+                                onClick={() => onSelectChat(chat.id)}
+                            >
+                                <div className={`chat-avatar ${chat.isGroup ? 'group' : ''}`}>
+                                    {chat.isGroup ? '' : getInitials(chat.otherParticipant?.username)}
                                 </div>
-                                <div className="chat-last-message">
-                                    {chat.lastMessage?.content || 'Sin mensajes'}
+                                <div className="chat-info">
+                                    <div className="chat-name">
+                                        {chat.isGroup ? chat.name : chat.otherParticipant?.username || 'Usuario'}
+                                    </div>
+                                    <div className="chat-last-message">
+                                        {chat.lastMessage?.content || 'Sin mensajes'}
+                                    </div>
+                                </div>
+                                <div className="chat-time">
+                                    {formatTime(chat.lastMessageAt)}
                                 </div>
                             </div>
-                            <div className="chat-time">
-                                {formatTime(chat.lastMessageAt)}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            <InviteManager />
         </div>
     );
 }

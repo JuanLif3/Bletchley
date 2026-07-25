@@ -44,4 +44,11 @@ export const messageAPI = {
         api.get(`/chats/${chatId}/messages?limit=${limit}&offset=${offset}`),
 };
 
+// * API de invitaciones
+export const inviteAPI = {
+    createInvite: () => api.post('/invites'),
+    getMyInvites: () => api.get('/invites'),
+    acceptInvite: (token) => api.post(`/invites/${token}/accept`),
+};
+
 export default api;

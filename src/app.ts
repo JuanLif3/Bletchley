@@ -7,6 +7,7 @@ import { userRoutes } from './routes/user.routes';
 import { messageRoutes } from './routes/message.routes';
 import { chatRoutes } from './routes/chat.routes';
 import { ChatWebSocketHandler } from './websockets/chat.handler';
+import { inviteRoutes } from './routes/invite.routes';
 
 export async function buildApp() {
   const app = Fastify({
@@ -22,6 +23,7 @@ export async function buildApp() {
   await userRoutes(app);
   await messageRoutes(app);
   await chatRoutes(app);
+  await inviteRoutes(app);
 
   // * Registrar WebSocket
   const chatHandler = new ChatWebSocketHandler();

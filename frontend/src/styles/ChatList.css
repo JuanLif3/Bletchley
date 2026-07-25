@@ -161,3 +161,43 @@
     flex-shrink: 0;
     margin-left: 0.5rem;
 }
+
+/* Contenedor scroll para la lista de chats */
+.chat-list-scroll {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+/* Asegurar que InviteManager quede al final */
+.chat-list {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: #11141f;
+    width: 340px;
+    min-width: 340px;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.chat-list-header {
+    padding: 1.75rem 1.5rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    flex-shrink: 0;
+}
+
+.chat-list-header h2 {
+    color: #e8edf5;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    margin: 0;
+}
+
+.chat-list-header .user-info {
+    color: #6b7280;
+    font-size: 0.75rem;
+    font-weight: 400;
+    margin-top: 0.2rem;
+}
