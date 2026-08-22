@@ -5,12 +5,17 @@ import Register from './components/Register';
 import ChatList from './components/ChatList';
 import Chat from './components/Chat';
 import AcceptInvite from './components/AcceptInvite';
+import Sidebar from './components/Sidebar';
 import websocketService from './services/websocket';
 import './App.css';
 
 // Componente principal que maneja el estado
 function MainApp({ user, setUser, selectedChat, setSelectedChat, isMobile }) {
   const navigate = useNavigate();
+
+  // Estados para las funcionalidades (por ahora solo visuales)
+  const [isPrivacyMode, setIsPrivacyMode] = useState(false);
+  const [isDestructMode, setIsDestructMode] = useState(false);
 
   const handleLogout = () => {
     websocketService.disconnect();
@@ -19,6 +24,27 @@ function MainApp({ user, setUser, selectedChat, setSelectedChat, isMobile }) {
     setUser(null);
     setSelectedChat(null);
     navigate('/');
+  };
+
+  const handleProfileUpdate = (updatedUser) => {
+    setUser(updatedUser);
+  };
+
+  // ⭐ Funcionalidades (por implementar - solo visual por ahora)
+  const handleSettingsClick = () => {
+    console.log('Abrir configuración - Por implementar');
+    // Abrirá el menú de configuración (actualmente en ChatList)
+  };
+
+  const handlePrivacyClick = () => {
+    setIsPrivacyMode(!isPrivacyMode);
+    console.log(`Modo privacidad: ${!isPrivacyMode ? 'ACTIVADO' : 'DESACTIVADO'}`);
+    // Implementar lógica de privacidad
+  };
+
+  const handleSelfDestructClick = () => {
+    console.log('Auto-destrucción - Mantén 5 segundos');
+    // Implementar lógica de auto-destrucción
   };
 
   const handleSelectChat = (chatId) => {
@@ -53,7 +79,11 @@ function MainApp({ user, setUser, selectedChat, setSelectedChat, isMobile }) {
         <div className="app-container">
           <div className="app-main">
             <div className={`chat-list-wrapper ${isMobile && selectedChat ? 'hidden' : ''}`}>
-              <ChatList onSelectChat={handleSelectChat} />
+              <ChatList
+                  onSelectChat={handleSelectChat}
+                  onLogout={handleLogout}
+                  onProfileUpdate={handleProfileUpdate}
+              />
             </div>
 
             <div className={`chat-wrapper ${!selectedChat ? 'hidden' : ''}`}>
@@ -67,11 +97,15 @@ function MainApp({ user, setUser, selectedChat, setSelectedChat, isMobile }) {
                   </div>
               )}
             </div>
+
+            {/* ⭐ Barra lateral derecha */}
+            <Sidebar
+                onSettingsClick={handleSettingsClick}
+                onPrivacyClick={handlePrivacyClick}
+                onSelfDestructClick={handleSelfDestructClick}
+            />
           </div>
         </div>
-        <button className="logout-btn" onClick={handleLogout}>
-          Cerrar sesión
-        </button>
       </div>
   );
 }

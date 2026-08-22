@@ -1,0 +1,404 @@
+/* ===== Botón de perfil ===== */
+.profile-menu {
+    position: relative;
+    flex-shrink: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.03);
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.01);
+}
+
+.profile-menu-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.5rem 0.6rem;
+    background: none;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Inter', sans-serif;
+    color: #e8edf5;
+}
+
+.profile-menu-btn:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.profile-menu-btn.active {
+    background: rgba(91, 141, 239, 0.08);
+}
+
+.profile-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(91, 141, 239, 0.15);
+    color: #5b8def;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.profile-username {
+    flex: 1;
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: #e8edf5;
+    text-align: left;
+}
+
+.profile-icon {
+    font-size: 0.9rem;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+}
+
+.profile-menu-btn:hover .profile-icon {
+    opacity: 0.8;
+}
+
+/* ===== Dropdown ===== */
+.profile-dropdown {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 0.5rem;
+    right: 0.5rem;
+    background: rgba(20, 24, 40, 0.98);
+    backdrop-filter: blur(16px);
+    border-radius: 14px;
+    padding: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    max-height: 65vh;
+    overflow-y: auto;
+    z-index: 1000;
+    animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.25rem 0.25rem 0.5rem;
+}
+
+.dropdown-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(91, 141, 239, 0.12);
+    color: #5b8def;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.dropdown-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #e8edf5;
+}
+
+.dropdown-email {
+    font-size: 0.7rem;
+    color: #6b7280;
+    font-weight: 300;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.04);
+    margin: 0.4rem 0;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    color: #e8edf5;
+    text-align: left;
+}
+
+.dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.dropdown-item.logout {
+    color: #ef4444;
+}
+
+.dropdown-item.logout:hover {
+    background: rgba(239, 68, 68, 0.06);
+}
+
+.dropdown-icon {
+    font-size: 0.9rem;
+    width: 1.4rem;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* ===== Formularios en dropdown ===== */
+.dropdown-form {
+    padding: 0.4rem 0.2rem 0.2rem;
+    margin-left: 0.2rem;
+    border-left: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.dropdown-form .form-group {
+    margin-bottom: 0.4rem;
+}
+
+.dropdown-form .form-group label {
+    display: block;
+    color: #9ca3af;
+    font-size: 0.65rem;
+    font-weight: 400;
+    margin-bottom: 0.1rem;
+    letter-spacing: 0.2px;
+}
+
+.dropdown-form .form-group input {
+    width: 100%;
+    padding: 0.35rem 0.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.02);
+    color: #e8edf5;
+    font-size: 0.75rem;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.dropdown-form .form-group input:focus {
+    border-color: rgba(91, 141, 239, 0.3);
+    background: rgba(91, 141, 239, 0.03);
+}
+
+.dropdown-save-btn {
+    width: 100%;
+    padding: 0.35rem 0.6rem;
+    background: rgba(91, 141, 239, 0.1);
+    color: #5b8def;
+    border: 1px solid rgba(91, 141, 239, 0.1);
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 400;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 0.2rem;
+}
+
+.dropdown-save-btn:hover:not(:disabled) {
+    background: rgba(91, 141, 239, 0.15);
+}
+
+.dropdown-save-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ===== Sección de invitaciones ===== */
+.dropdown-invite-section {
+    padding: 0.1rem 0;
+}
+
+.dropdown-invite-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 400;
+}
+
+.dropdown-invite-btn {
+    width: 100%;
+    padding: 0.35rem 0.6rem;
+    background: rgba(91, 141, 239, 0.06);
+    color: #5b8def;
+    border: 1px solid rgba(91, 141, 239, 0.06);
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 0.3rem;
+}
+
+.dropdown-invite-btn:hover:not(:disabled) {
+    background: rgba(91, 141, 239, 0.1);
+}
+
+.dropdown-invite-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.dropdown-invite-link {
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 6px;
+    padding: 0.2rem 0.3rem 0.2rem 0.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    margin-bottom: 0.3rem;
+}
+
+.invite-link-text {
+    flex: 1;
+    color: #9ca3af;
+    font-size: 0.55rem;
+    font-family: 'Inter', monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.invite-copy-btn {
+    padding: 0.15rem 0.5rem;
+    background: rgba(91, 141, 239, 0.08);
+    color: #5b8def;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.invite-copy-btn:hover {
+    background: rgba(91, 141, 239, 0.15);
+}
+
+/* ===== Lista de invitaciones en dropdown ===== */
+.dropdown-invite-list {
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+.invite-loading,
+.invite-empty {
+    color: #4a4f5e;
+    font-size: 0.65rem;
+    font-weight: 300;
+    margin: 0.15rem 0.3rem;
+}
+
+.invite-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.15rem 0.3rem;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.01);
+}
+
+.invite-item:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.invite-item-token {
+    color: #6b7280;
+    font-size: 0.55rem;
+    font-family: 'Inter', monospace;
+}
+
+.invite-item-status {
+    font-size: 0.5rem;
+    font-weight: 300;
+    padding: 0.05rem 0.3rem;
+    border-radius: 4px;
+}
+
+.invite-item-status.pending {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.06);
+}
+
+.invite-item-status.used {
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.06);
+}
+
+.invite-item-date {
+    color: #4a4f5e;
+    font-size: 0.5rem;
+    font-weight: 300;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* ===== Mensaje de feedback ===== */
+.dropdown-message {
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    margin-top: 0.3rem;
+    text-align: center;
+}
+
+.dropdown-message.success {
+    background: rgba(52, 211, 153, 0.06);
+    color: #34d399;
+}
+
+.dropdown-message.error {
+    background: rgba(239, 68, 68, 0.06);
+    color: #ef4444;
+}
+
+/* ===== Scrollbar ===== */
+.profile-dropdown::-webkit-scrollbar {
+    width: 3px;
+}
+
+.profile-dropdown::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.profile-dropdown::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 3px;
+}
+
+.dropdown-invite-list::-webkit-scrollbar {
+    width: 2px;
+}
+
+.dropdown-invite-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 2px;
+}

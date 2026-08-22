@@ -21,7 +21,6 @@
   overflow: hidden;
 }
 
-/* Contenedor principal con dos columnas */
 .app-main {
   display: flex;
   width: 100%;
@@ -29,7 +28,7 @@
   overflow: hidden;
 }
 
-/* Lista de chats - siempre visible en desktop */
+/* Chat list - izquierda */
 .chat-list-wrapper {
   width: 340px;
   min-width: 340px;
@@ -39,7 +38,7 @@
   overflow: hidden;
 }
 
-/* Contenedor del chat - ocupa el resto */
+/* Chat - centro */
 .chat-wrapper {
   flex: 1;
   height: 100vh;
@@ -47,33 +46,65 @@
   background: #0e111b;
 }
 
-/* Botón logout minimalista */
-.logout-btn {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  padding: 8px 18px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #6b7280;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 400;
-  letter-spacing: 0.3px;
-  cursor: pointer;
-  transition: all 0.25s ease;
+/* Sidebar - derecha (NUEVO) */
+.sidebar-wrapper {
+  flex-shrink: 0;
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #3a3f4e;
   font-family: 'Inter', sans-serif;
-  backdrop-filter: blur(8px);
-  z-index: 1000;
+  font-weight: 300;
 }
 
-.logout-btn:hover {
-  background: rgba(239, 68, 68, 0.08);
-  color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.15);
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.2;
 }
 
-/* Responsive: pantallas pequeñas */
+.empty-state-title {
+  font-size: 0.95rem;
+  color: #4a4f5e;
+}
+
+.empty-state-hint {
+  font-size: 0.8rem;
+  color: #2a2f3e;
+  margin-top: 0.15rem;
+}
+
+/* ⭐ Clases para modo privacidad (se agregarán más adelante) */
+.privacy-mode .chat-messages .message-bubble {
+  filter: blur(8px);
+  transition: filter 0.3s ease;
+}
+
+.privacy-mode .chat-messages .message-bubble:hover {
+  filter: blur(0);
+}
+
+.privacy-mode .chat-list-items .chat-item .chat-last-message {
+  filter: blur(6px);
+  transition: filter 0.3s ease;
+}
+
+.privacy-mode .chat-list-items .chat-item:hover .chat-last-message {
+  filter: blur(0);
+}
+
+/* Hidden para móvil */
+.hidden {
+  display: none !important;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
   .chat-list-wrapper {
     width: 100%;
