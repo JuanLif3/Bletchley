@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn} from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity('users')
 export class User {
@@ -13,6 +13,9 @@ export class User {
 
     @Column({ name: 'password_hash', type: 'varchar' })
     passwordHash!: string;
+
+    @Column({ name: 'public_key', type: 'text', nullable: true })
+    publicKey?: string;  // ⭐ AGREGAR ESTE CAMPO
 
     @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
     createdAt!: Date;

@@ -4,29 +4,22 @@ import { ChatParticipant } from '../models/ChatParticipant.model';
 import { Message } from '../models/Message.model';
 
 export class ChatRepository {
-    private chatRepository = AppDataSource.getRepository(Chat);
-    private participantRepository = AppDataSource.getRepository(ChatParticipant);
-    private messageRepository = AppDataSource.getRepository(Message);
+    private chatRepo = AppDataSource.getRepository(Chat);
+    private participantRepo = AppDataSource.getRepository(ChatParticipant);
+    private messageRepo = AppDataSource.getRepository(Message);
 
     async create(chatData: Partial<Chat>): Promise<Chat> {
-        const chat = this.chatRepository.create(chatData);
-        return await this.chatRepository.save(chat);
+        const chat = this.chatRepo.create(chatData);
+        return await this.chatRepo.save(chat);
     }
 
     async addParticipant(chatId: string, userId: string): Promise<ChatParticipant> {
-        const participant = this.participantRepository.create({ chatId, userId });
-        return await this.participantRepository.save(participant);
-    }
-
-    async getParticipants(chatId: string): Promise<ChatParticipant[]> {
-        return await this.participantRepository.find({
-            where: { chatId },
-            relations: ['user'],
-        });
+        const participant = this.participantRepo.create({ chatId, userId });
+        return await this.participantRepo.save(participant);
     }
 
     async findById(id: string): Promise<Chat | null> {
-        return await this.chatRepository.findOne({
+        return await this.chatRepo.findOne({
             where: { id },
             relations: ['participants', 'participants.user', 'messages', 'messages.sender', 'creator'],
             order: {
@@ -38,7 +31,7 @@ export class ChatRepository {
     }
 
     async findByUserId(userId: string): Promise<Chat[]> {
-        const participantRecords = await this.participantRepository.find({
+        const participantRecords = await this.participantRepo.find({
             where: { userId },
             relations: ['chat', 'chat.participants', 'chat.participants.user', 'chat.messages', 'chat.messages.sender'],
             order: {
@@ -51,53 +44,52 @@ export class ChatRepository {
         return participantRecords.map(p => p.chat);
     }
 
+    async getParticipants(chatId: string): Promise<ChatParticipant[]> {
+        return await this.participantRepo.find({
+            where: { chatId },
+            relations: ['user'],
+        });
+    }
+
     async findOneOnOneChat(userId1: string, userId2: string): Promise<Chat | null> {
-        // ! Buscar participantes donde userId1 está presente
-        const participants1 = await this.participantRepository.find({
+        const participants1 = await this.participantRepo.find({
             where: { userId: userId1 },
             relations: ['chat', 'chat.participants'],
         });
 
-        // ! Buscar participantes donde userId2 está presente
-        const participants2 = await this.participantRepository.find({
+        const participants2 = await this.participantRepo.find({
             where: { userId: userId2 },
             relations: ['chat', 'chat.participants'],
         });
 
-        // ! Obtener los IDs de los chats del usuario 1
         const chatIds1 = participants1.map(p => p.chatId);
         const chatIds2 = participants2.map(p => p.chatId);
-
-        // ! Encontrar chats que están en ambos conjuntos (intersección)
         const commonChatIds = chatIds1.filter(id => chatIds2.includes(id));
 
-        if (commonChatIds.length === 0) {
-            return null;
-        }
+        if (commonChatIds.length === 0) return null;
 
-        // ! Verificar que el chat no sea grupal
         for (const chatId of commonChatIds) {
-            const chat = await this.chatRepository.findOne({
+            const chat = await this.chatRepo.findOne({
                 where: { id: chatId, isGroup: false },
                 relations: ['participants'],
             });
-
-            if (chat) {
-                return chat;
-            }
+            if (chat) return chat;
         }
-
         return null;
     }
 
     async delete(id: string): Promise<boolean> {
-        // TypeORM con CASCADE eliminará automáticamente los participantes y mensajes
-        const result = await this.chatRepository.delete({ id });
+        const result = await this.chatRepo.delete({ id });
         return result.affected ? result.affected > 0 : false;
     }
 
     async removeParticipant(chatId: string, userId: string): Promise<boolean> {
-        const result = await this.participantRepository.delete({ chatId, userId });
+        const result = await this.participantRepo.delete({ chatId, userId });
+        return result.affected ? result.affected > 0 : false;
+    }
+
+    async removeAllParticipants(chatId: string): Promise<boolean> {
+        const result = await this.participantRepo.delete({ chatId });
         return result.affected ? result.affected > 0 : false;
     }
 }

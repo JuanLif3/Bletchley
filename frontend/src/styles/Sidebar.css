@@ -135,6 +135,36 @@
     margin: 0.25rem 0;
 }
 
+/* Barra de progreso para auto-destrucción */
+.sidebar-icon-danger.holding {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    animation: pulse-destruct 0.3s ease infinite alternate;
+}
+
+.sidebar-progress {
+    position: absolute;
+    bottom: -4px;
+    left: 4px;
+    right: 4px;
+    height: 3px;
+    background: rgba(239, 68, 68, 0.15);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.sidebar-progress-bar {
+    height: 100%;
+    background: #ef4444;
+    border-radius: 2px;
+    transition: width 0.1s linear;
+}
+
+@keyframes pulse-destruct {
+    from { transform: scale(1); }
+    to { transform: scale(1.05); }
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
     .sidebar {

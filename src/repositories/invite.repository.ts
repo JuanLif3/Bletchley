@@ -44,4 +44,14 @@ export class InviteRepository {
             .execute();
         return result.affected || 0;
     }
+
+    async deleteByCreatorId(creatorId: string): Promise<boolean> {
+        const result = await this.repository.delete({ creatorId });
+        return result.affected ? result.affected > 0 : false;
+    }
+
+    async deleteByUsedById(userId: string): Promise<boolean> {
+        const result = await this.repository.delete({ usedById: userId });
+        return result.affected ? result.affected > 0 : false;
+    }
 }

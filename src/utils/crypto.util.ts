@@ -1,17 +1,17 @@
 import sodium from 'libsodium-wrappers';
 
 export class CryptoUtil {
-    // ! Inicial libsodium
+    // * Inicializar libsodium
     static async init() {
         await sodium.ready;
     }
 
-    // * Generar par de claves (publica/privada)
+    // * Generar par de claves (pública/privada)
     static generateKeyPair() {
         return sodium.crypto_box_keypair();
     }
 
-    // * Obtener clave publica en base64
+    // * Obtener clave pública en base64
     static getPublicKey(keypair: any): string {
         return sodium.to_base64(keypair.publicKey);
     }
@@ -40,21 +40,19 @@ export class CryptoUtil {
         };
     }
 
-    // * Decifrar mensaje
-    static decrypMessage(
+    // * Descifrar mensaje
+    static decryptMessage(
         ciphertext: string,
         nonce: string,
         recipientPrivateKey: Uint8Array,
-        senderPubicKey: Uint8Array
-    ): string{
+        senderPublicKey: Uint8Array
+    ): string {
         const decrypted = sodium.crypto_box_open_easy(
             sodium.from_base64(ciphertext),
             sodium.from_base64(nonce),
-            senderPubicKey,
+            senderPublicKey,
             recipientPrivateKey
         );
         return sodium.to_string(decrypted);
     }
-
-
 }

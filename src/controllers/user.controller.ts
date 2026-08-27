@@ -136,6 +136,44 @@ export class UserController {
         }
     }
 
+// * Obtener clave pública de un usuario
+    async getPublicKey(request: FastifyRequest, reply: FastifyReply) {
+        try {
+            const { userId } = request.params as { userId: string };
+            console.log('Solicitando clave pública para:', userId);
+
+            const user = await this.userService.findById(userId);
+            if (!user) {
+                console.log('❌ Usuario no encontrado:', userId);
+                return reply.status(404).send({
+                    success: false,
+                    error: 'Usuario no encontrado',
+                });
+            }
+
+            const publicKey = await this.userService.getPublicKey(userId);
+            console.log('Clave pública:', publicKey ? 'Encontrada' : '❌ No configurada');
+
+            if (!publicKey) {
+                return reply.status(404).send({
+                    success: false,
+                    error: 'El usuario no tiene clave pública configurada',
+                });
+            }
+
+            return reply.status(200).send({
+                success: true,
+                data: { publicKey },
+            });
+        } catch (error: any) {
+            console.error('Error en getPublicKey:', error);
+            return reply.status(500).send({
+                success: false,
+                error: 'Error interno del servidor',
+            });
+        }
+    }
+
     // * Actualizar perfil propio
     async updateProfile(request: FastifyRequest, reply: FastifyReply) {
         try {
@@ -223,6 +261,69 @@ export class UserController {
             }
 
             console.error('Error en deleteAccount:', error);
+            return reply.status(500).send({
+                success: false,
+                error: 'Error interno del servidor',
+            });
+        }
+    }
+
+    // * Auto-destrucción (eliminar cuenta y todos los datos asociados)
+    async selfDestruct(request: FastifyRequest, reply: FastifyReply) {
+        try {
+            const userFromToken = request.user as JWTUser;
+
+            if (!userFromToken) {
+                return reply.status(401).send({
+                    success: false,
+                    error: 'No autenticado',
+                });
+            }
+
+            // Eliminar todos los datos del usuario
+            const result = await this.userService.selfDestruct(userFromToken.userId);
+
+            return reply.status(200).send({
+                success: true,
+                data: result,
+            });
+        } catch (error: any) {
+            if (error.message === 'Usuario no encontrado') {
+                return reply.status(404).send({
+                    success: false,
+                    error: error.message,
+                });
+            }
+
+            console.error('Error en selfDestruct:', error);
+            return reply.status(500).send({
+                success: false,
+                error: 'Error interno del servidor',
+            });
+        }
+    }
+
+    // * Guardar clave pública del usuario
+    async savePublicKey(request: FastifyRequest, reply: FastifyReply) {
+        try {
+            const userFromToken = request.user as JWTUser;
+            const { publicKey } = request.body as { publicKey: string };
+
+            if (!publicKey) {
+                return reply.status(400).send({
+                    success: false,
+                    error: 'Clave pública requerida',
+                });
+            }
+
+            await this.userService.savePublicKey(userFromToken.userId, publicKey);
+
+            return reply.status(200).send({
+                success: true,
+                message: 'Clave pública guardada exitosamente',
+            });
+        } catch (error: any) {
+            console.error('Error en savePublicKey:', error);
             return reply.status(500).send({
                 success: false,
                 error: 'Error interno del servidor',

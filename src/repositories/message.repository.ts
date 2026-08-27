@@ -36,4 +36,9 @@ export class MessageRepository {
         const result = await this.repository.delete({ chatId });
         return result.affected ? result.affected > 0 : false;
     }
+
+    async deleteBySenderId(senderId: string): Promise<boolean> {
+        const result = await this.repository.delete({ senderId });
+        return result.affected ? result.affected > 0 : false;
+    }
 }

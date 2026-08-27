@@ -1,8 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import '../styles/Sidebar.css';
 
 function Sidebar({ onSettingsClick, onPrivacyClick, onSelfDestructClick }) {
     const [activeTooltip, setActiveTooltip] = useState(null);
+    const [isHolding, setIsHolding] = useState(false);
+    const [holdProgress, setHoldProgress] = useState(0);
+    const holdIntervalRef = useRef(null);
+    const holdTimeoutRef = useRef(null);
 
     const handleMouseEnter = (tooltip) => {
         setActiveTooltip(tooltip);
@@ -10,6 +14,48 @@ function Sidebar({ onSettingsClick, onPrivacyClick, onSelfDestructClick }) {
 
     const handleMouseLeave = () => {
         setActiveTooltip(null);
+    };
+
+    // Iniciar hold para auto-destrucción
+    const startHold = (e) => {
+        e.preventDefault();
+        setIsHolding(true);
+        setHoldProgress(0);
+
+        let progress = 0;
+        holdIntervalRef.current = setInterval(() => {
+            progress += 1;
+            setHoldProgress(progress);
+            if (progress >= 100) {
+                clearInterval(holdIntervalRef.current);
+                clearTimeout(holdTimeoutRef.current);
+                // Ejecutar auto-destrucción
+                if (onSelfDestructClick) {
+                    onSelfDestructClick();
+                }
+                setIsHolding(false);
+                setHoldProgress(0);
+            }
+        }, 50); // 50ms * 100 = 5000ms (5 segundos)
+
+        // Cancelar si se suelta antes de 5 segundos
+        holdTimeoutRef.current = setTimeout(() => {
+            clearInterval(holdIntervalRef.current);
+            setIsHolding(false);
+            setHoldProgress(0);
+        }, 5000);
+    };
+
+    // Cancelar hold
+    const cancelHold = () => {
+        if (holdIntervalRef.current) {
+            clearInterval(holdIntervalRef.current);
+        }
+        if (holdTimeoutRef.current) {
+            clearTimeout(holdTimeoutRef.current);
+        }
+        setIsHolding(false);
+        setHoldProgress(0);
     };
 
     return (
@@ -50,17 +96,26 @@ function Sidebar({ onSettingsClick, onPrivacyClick, onSelfDestructClick }) {
 
             {/* Icono 3: Auto-destrucción */}
             <div
-                className="sidebar-icon sidebar-icon-danger"
-                onMouseDown={onSelfDestructClick}
+                className={`sidebar-icon sidebar-icon-danger ${isHolding ? 'holding' : ''}`}
+                onMouseDown={startHold}
+                onMouseUp={cancelHold}
+                onMouseLeave={cancelHold}
+                onTouchStart={startHold}
+                onTouchEnd={cancelHold}
                 onMouseEnter={() => handleMouseEnter('selfdestruct')}
                 onMouseLeave={handleMouseLeave}
             >
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                 </svg>
+                {isHolding && (
+                    <div className="sidebar-progress">
+                        <div className="sidebar-progress-bar" style={{ width: `${holdProgress}%` }} />
+                    </div>
+                )}
                 {activeTooltip === 'selfdestruct' && (
                     <div className="sidebar-tooltip sidebar-tooltip-danger">
-                        Mantén 5s para auto-destruir
+                        {isHolding ? `${holdProgress}%` : 'Mantén 5s para auto-destruir'}
                     </div>
                 )}
             </div>

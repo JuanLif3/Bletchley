@@ -4,6 +4,8 @@ import websocketService from '../services/websocket';
 import Message from './Message';
 import MessageInput from './MessageInput';
 import '../styles/Chat.css';
+import cryptoService from '../services/crypto.service';
+import { keysAPI } from '../services/api';
 
 function Chat({ chatId, onBack }) {
     const [messages, setMessages] = useState([]);
@@ -60,9 +62,79 @@ function Chat({ chatId, onBack }) {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
-    const handleSendMessage = (content) => {
+
+    const handleSendMessage = async (content) => {
         if (!content.trim()) return;
-        websocketService.sendMessage(chatId, content);
+
+        try {
+            // 1. Obtener la clave pública del destinatario
+            const currentUser = JSON.parse(localStorage.getItem('user'));
+            const chat = await chatAPI.getChatDetails(chatId);
+
+            // Encontrar el otro participante
+            const otherParticipant = chat.data.data.participants.find(
+                p => p.userId !== currentUser.id
+            );
+
+            if (!otherParticipant) {
+                console.error('No se encontró el destinatario');
+                return;
+            }
+
+            // 2. Obtener o recuperar la clave pública del destinatario
+            let recipientPublicKey = otherParticipant.publicKey;
+            if (!recipientPublicKey) {
+                // Si no está en el chat, pedirla al backend
+                const response = await keysAPI.getPublicKey(otherParticipant.userId);
+                recipientPublicKey = response.data.data.publicKey;
+            }
+
+            // 3. Obtener la clave privada del usuario actual (desde localStorage o generarla)
+            let userPrivateKey = localStorage.getItem('privateKey');
+            if (!userPrivateKey) {
+                // Generar nuevas claves para el usuario
+                const keyPair = cryptoService.generateKeyPair();
+                userPrivateKey = cryptoService.getPrivateKey(keyPair);
+                const publicKey = cryptoService.getPublicKey(keyPair);
+
+                // Guardar clave pública en el backend
+                await keysAPI.savePublicKey(publicKey);
+
+                // Guardar clave privada en localStorage (cifrada con contraseña)
+                const password = prompt('Ingresa tu contraseña para cifrar tu clave privada:');
+                if (password) {
+                    const encrypted = cryptoService.encryptPrivateKey(userPrivateKey, password);
+                    localStorage.setItem('encryptedPrivateKey', JSON.stringify(encrypted));
+                    localStorage.setItem('privateKey', userPrivateKey); // Temporal, se usará la cifrada
+                }
+            }
+
+            // 4. Cifrar el mensaje
+            const senderPrivateKey = sodium.from_base64(userPrivateKey);
+            const recipientPublicKeyBytes = sodium.from_base64(recipientPublicKey);
+
+            const encrypted = cryptoService.encryptMessage(
+                content,
+                senderPrivateKey,
+                recipientPublicKeyBytes
+            );
+
+            // 5. Enviar el mensaje cifrado (contiene ciphertext y nonce)
+            const payload = {
+                chatId: chatId,
+                content: encrypted.ciphertext,
+                nonce: encrypted.nonce,
+                encrypted: true
+            };
+
+            // Enviar por WebSocket
+            websocketService.sendMessage(chatId, JSON.stringify(payload));
+
+        } catch (error) {
+            console.error('Error al cifrar mensaje:', error);
+            // Fallback: enviar mensaje en texto plano
+            websocketService.sendMessage(chatId, content);
+        }
     };
 
     const getChatName = () => {

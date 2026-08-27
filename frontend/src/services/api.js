@@ -51,4 +51,19 @@ export const inviteAPI = {
     acceptInvite: (token) => api.post(`/invites/${token}/accept`),
 };
 
+// * API de claves (para E2EE)
+export const keysAPI = {
+    // ! Guardar clave pública del usuario
+    savePublicKey: (publicKey) => api.post('/users/keys', { publicKey }),
+
+    // ! Obtener clave pública de otro usuario
+    getPublicKey: (userId) => api.get(`/users/${userId}/public-key`),
+};
+
+// * API de auto-destrucción
+export const destructAPI = {
+    // ! Auto-destruir cuenta y datos
+    selfDestruct: () => api.delete('/users/self-destruct'),
+};
+
 export default api;

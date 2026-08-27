@@ -7,15 +7,22 @@ import Chat from './components/Chat';
 import AcceptInvite from './components/AcceptInvite';
 import Sidebar from './components/Sidebar';
 import websocketService from './services/websocket';
+import { destructAPI } from './services/api';
 import './App.css';
 
 // Componente principal que maneja el estado
 function MainApp({ user, setUser, selectedChat, setSelectedChat, isMobile }) {
   const navigate = useNavigate();
-
-  // Estados para las funcionalidades (por ahora solo visuales)
   const [isPrivacyMode, setIsPrivacyMode] = useState(false);
-  const [isDestructMode, setIsDestructMode] = useState(false);
+
+  // Cargar estado de privacidad desde localStorage
+  useEffect(() => {
+    const savedPrivacy = localStorage.getItem('privacyMode');
+    if (savedPrivacy === 'true') {
+      setIsPrivacyMode(true);
+      document.body.classList.add('privacy-mode');
+    }
+  }, []);
 
   const handleLogout = () => {
     websocketService.disconnect();
@@ -30,21 +37,42 @@ function MainApp({ user, setUser, selectedChat, setSelectedChat, isMobile }) {
     setUser(updatedUser);
   };
 
-  // ⭐ Funcionalidades (por implementar - solo visual por ahora)
-  const handleSettingsClick = () => {
-    console.log('Abrir configuración - Por implementar');
-    // Abrirá el menú de configuración (actualmente en ChatList)
-  };
-
+  // Toggle modo privacidad
   const handlePrivacyClick = () => {
-    setIsPrivacyMode(!isPrivacyMode);
-    console.log(`Modo privacidad: ${!isPrivacyMode ? 'ACTIVADO' : 'DESACTIVADO'}`);
-    // Implementar lógica de privacidad
+    const newMode = !isPrivacyMode;
+    setIsPrivacyMode(newMode);
+    document.body.classList.toggle('privacy-mode', newMode);
+    localStorage.setItem('privacyMode', JSON.stringify(newMode));
   };
 
-  const handleSelfDestructClick = () => {
-    console.log('Auto-destrucción - Mantén 5 segundos');
-    // Implementar lógica de auto-destrucción
+  // Auto-destrucción
+  const handleSelfDestruct = async () => {
+    const confirm = window.confirm(
+        '⚠️ ¡ATENCIÓN! Esto eliminará permanentemente tu cuenta, todos tus chats y mensajes. Esta acción no se puede deshacer. ¿Estás seguro?'
+    );
+
+    if (!confirm) return;
+
+    try {
+      await destructAPI.selfDestruct();
+      websocketService.disconnect();
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('privateKey');
+      localStorage.removeItem('encryptedPrivateKey');
+      localStorage.removeItem('privacyMode');
+      setUser(null);
+      setSelectedChat(null);
+      navigate('/');
+      alert('✅ Tu cuenta ha sido eliminada exitosamente');
+    } catch (error) {
+      console.error('Error en auto-destrucción:', error);
+      alert('❌ Error al eliminar la cuenta: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  const handleSettingsClick = () => {
+    console.log('🔧 Abrir configuración');
   };
 
   const handleSelectChat = (chatId) => {
@@ -98,11 +126,10 @@ function MainApp({ user, setUser, selectedChat, setSelectedChat, isMobile }) {
               )}
             </div>
 
-            {/* ⭐ Barra lateral derecha */}
             <Sidebar
                 onSettingsClick={handleSettingsClick}
                 onPrivacyClick={handlePrivacyClick}
-                onSelfDestructClick={handleSelfDestructClick}
+                onSelfDestructClick={handleSelfDestruct}
             />
           </div>
         </div>
