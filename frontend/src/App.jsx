@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import Login from './components/Login';
 import Register from './components/Register';
 import ChatList from './components/ChatList';
@@ -15,71 +15,74 @@ function MainApp({ user, setUser, selectedChat, setSelectedChat, isMobile }) {
   const navigate = useNavigate();
   const [isPrivacyMode, setIsPrivacyMode] = useState(false);
 
-  // Inicializar claves cuando el usuario inicia sesión o se restaura la sesión
   useEffect(() => {
     if (user) {
       initializeKeys();
     }
-  }, [user]); // <- Ahora se ejecuta al cambiar `user`
+  }, [user]);
 
   const initializeKeys = async () => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      console.warn('Esperando a que el token se guarde...');
+    if (!token) return;
+
+    // Si ya tenemos la clave privada en memoria, no hacemos nada
+    if (cryptoService.getCachedPrivateKey()) return;
+
+    // Si hay una clave privada en localStorage sin cifrar, la usamos
+    let userPrivateKey = localStorage.getItem('privateKey');
+    if (userPrivateKey) {
+      cryptoService.setCachedPrivateKey(userPrivateKey);
       return;
     }
 
-    let userPrivateKey = localStorage.getItem('privateKey');
-
-    // Si no hay clave privada en claro, intentar descifrar la cifrada
-    if (!userPrivateKey) {
-      const encrypted = JSON.parse(localStorage.getItem('encryptedPrivateKey') || 'null');
-      if (encrypted) {
-        const password = prompt('🔒 Ingresa tu contraseña para desbloquear tus claves:');
-        if (password) {
-          try {
-            userPrivateKey = cryptoService.decryptPrivateKey(
-                encrypted.ciphertext,
-                encrypted.nonce,
-                password
-            );
-            localStorage.setItem('privateKey', userPrivateKey);
-          } catch (error) {
-            console.error('Contraseña incorrecta o datos corruptos');
-          }
+    // Si hay una clave cifrada, pedimos la contraseña y la desciframos
+    const encrypted = JSON.parse(localStorage.getItem('encryptedPrivateKey') || 'null');
+    if (encrypted) {
+      const password = prompt('🔒 Ingresa tu contraseña para desbloquear tus claves:');
+      if (password) {
+        try {
+          userPrivateKey = cryptoService.decryptPrivateKey(
+              encrypted.ciphertext,
+              encrypted.nonce,
+              password
+          );
+          localStorage.setItem('privateKey', userPrivateKey); // guardamos en claro para futuras sesiones
+          cryptoService.setCachedPrivateKey(userPrivateKey);
+          return;
+        } catch (error) {
+          console.error('Contraseña incorrecta o datos corruptos');
+          alert('❌ Contraseña incorrecta. Intenta de nuevo.');
+          // Podríamos reintentar, pero por ahora simplemente no avanzamos
+          return;
         }
       }
     }
 
-    // Si aún no hay clave privada, generar una nueva
-    if (!userPrivateKey) {
-      try {
-        console.log('Generando nuevas claves de cifrado...');
-        const keyPair = cryptoService.generateKeyPair();
-        const privateKey = cryptoService.getPrivateKey(keyPair);
-        const publicKey = cryptoService.getPublicKey(keyPair);
+    // Si no hay ninguna clave, generamos un nuevo par
+    try {
+      console.log('Generando nuevas claves de cifrado...');
+      const keyPair = cryptoService.generateKeyPair();
+      const privateKey = cryptoService.getPrivateKey(keyPair);
+      const publicKey = cryptoService.getPublicKey(keyPair);
 
-        // Subir la clave pública al backend
-        await keysAPI.savePublicKey(publicKey);
+      await keysAPI.savePublicKey(publicKey);
 
-        // Pedir al usuario que proteja su clave privada
-        const password = prompt('🔒 Crea una contraseña para proteger tus chats (Esta contraseña no se puede recuperar):');
-        if (password) {
-          const encrypted = cryptoService.encryptPrivateKey(privateKey, password);
-          localStorage.setItem('encryptedPrivateKey', JSON.stringify(encrypted));
-          localStorage.setItem('privateKey', privateKey);
-          console.log('✅ Claves generadas y guardadas exitosamente.');
-        } else {
-          // Fallback por si el usuario cancela (solo para desarrollo)
-          localStorage.setItem('privateKey', privateKey);
-        }
-      } catch (error) {
-        console.error('Error al inicializar claves E2EE:', error);
+      const password = prompt('🔒 Crea una contraseña para proteger tus chats (Esta contraseña no se puede recuperar):');
+      if (password) {
+        const encrypted = cryptoService.encryptPrivateKey(privateKey, password);
+        localStorage.setItem('encryptedPrivateKey', JSON.stringify(encrypted));
+        localStorage.setItem('privateKey', privateKey);
+        console.log('✅ Claves generadas y guardadas exitosamente.');
+      } else {
+        localStorage.setItem('privateKey', privateKey);
       }
+      cryptoService.setCachedPrivateKey(privateKey);
+    } catch (error) {
+      console.error('Error al inicializar claves E2EE:', error);
     }
   };
 
-  // Cargar estado de privacidad desde localStorage
+  // Cargar estado de privacidad
   useEffect(() => {
     const savedPrivacy = localStorage.getItem('privacyMode');
     if (savedPrivacy === 'true') {
@@ -92,8 +95,6 @@ function MainApp({ user, setUser, selectedChat, setSelectedChat, isMobile }) {
     websocketService.disconnect();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    localStorage.removeItem('privateKey');
-    localStorage.removeItem('encryptedPrivateKey');
     setUser(null);
     setSelectedChat(null);
     navigate('/');
@@ -207,14 +208,11 @@ function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
 
     const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
-
     if (token && savedUser) {
       try {
         const userData = JSON.parse(savedUser);

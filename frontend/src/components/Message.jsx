@@ -8,92 +8,80 @@ function Message({ message, otherPublicKey }) {
     const [decryptedContent, setDecryptedContent] = useState('Descifrando...');
 
     useEffect(() => {
-        const decryptMessage = async () => {
-            // Si es mensaje propio y ya tiene contenido local (optimista), mostrar directamente
-            if (isOwnMessage && message.isLocal) {
-                setDecryptedContent(message.content);
+        // Si es mensaje propio y tenemos su contenido original, mostrarlo directamente
+        if (isOwnMessage) {
+            const sentMessages = JSON.parse(localStorage.getItem('sentMessages') || '{}');
+            if (sentMessages[message.id] || message.isLocal) {
+                setDecryptedContent(sentMessages[message.id] || message.content);
+                return;
+            } else {
+                // No tenemos el contenido original, mostramos "Enviado"
+                setDecryptedContent('✅ Mensaje enviado');
+                return;
+            }
+        }
+
+        // Si es mensaje de otro usuario, intentar descifrar
+        try {
+            let parsedContent;
+            try {
+                parsedContent = typeof message.content === 'string'
+                    ? JSON.parse(message.content)
+                    : message.content;
+            } catch (e) {
+                setDecryptedContent(String(message.content));
                 return;
             }
 
-            // Si es mensaje propio y NO es local, intentar obtener contenido de localStorage
-            if (isOwnMessage && !message.isLocal) {
-                const sentMessages = JSON.parse(localStorage.getItem('sentMessages') || '{}');
-                if (sentMessages[message.id]) {
-                    setDecryptedContent(sentMessages[message.id]);
-                    return;
-                } else {
-                    setDecryptedContent('✅ Mensaje enviado');
-                    return;
-                }
+            if (!parsedContent || !parsedContent.ciphertext || !parsedContent.nonce) {
+                setDecryptedContent(String(message.content));
+                return;
             }
 
-            try {
-                // Extraer JSON cifrado
-                let parsedContent;
-                try {
-                    parsedContent = typeof message.content === 'string'
-                        ? JSON.parse(message.content)
-                        : message.content;
-                } catch (e) {
-                    setDecryptedContent(String(message.content));
-                    return;
-                }
-
-                if (!parsedContent || !parsedContent.ciphertext || !parsedContent.nonce) {
-                    setDecryptedContent(String(message.content));
-                    return;
-                }
-
-                // Obtener clave privada
-                let privateKey = localStorage.getItem('privateKey');
-                if (!privateKey) {
-                    const encrypted = JSON.parse(localStorage.getItem('encryptedPrivateKey') || 'null');
-                    if (encrypted) {
-                        const password = prompt('Ingresa tu contraseña para descifrar mensajes:');
-                        if (password) {
-                            try {
-                                privateKey = cryptoService.decryptPrivateKey(
-                                    encrypted.ciphertext,
-                                    encrypted.nonce,
-                                    password
-                                );
-                                localStorage.setItem('privateKey', privateKey);
-                            } catch (decryptionError) {
-                                console.error('Contraseña incorrecta o datos corruptos');
-                            }
+            // Obtener clave privada
+            let privateKey = localStorage.getItem('privateKey') || cryptoService.getCachedPrivateKey();
+            if (!privateKey) {
+                const encrypted = JSON.parse(localStorage.getItem('encryptedPrivateKey') || 'null');
+                if (encrypted) {
+                    const password = prompt('Ingresa tu contraseña para descifrar mensajes:');
+                    if (password) {
+                        try {
+                            privateKey = cryptoService.decryptPrivateKey(
+                                encrypted.ciphertext,
+                                encrypted.nonce,
+                                password
+                            );
+                            localStorage.setItem('privateKey', privateKey);
+                            cryptoService.setCachedPrivateKey(privateKey);
+                        } catch (error) {
+                            console.error('Contraseña incorrecta');
                         }
                     }
                 }
-
-                if (!privateKey) {
-                    setDecryptedContent('🔒 Mensaje cifrado (necesitas contraseña)');
-                    return;
-                }
-
-                // Para mensajes de otros, usar la clave pública del remitente
-                const senderPublicKey = message.sender?.publicKey || message.senderPublicKey || otherPublicKey;
-
-                if (!senderPublicKey) {
-                    setDecryptedContent('🔒 (Falta clave pública del contacto)');
-                    return;
-                }
-
-                const decrypted = cryptoService.decryptMessage(
-                    parsedContent.ciphertext,
-                    parsedContent.nonce,
-                    privateKey,
-                    senderPublicKey
-                );
-
-                setDecryptedContent(decrypted);
-
-            } catch (error) {
-                console.error('Error al descifrar mensaje:', error);
-                setDecryptedContent('🔒 (No se pudo descifrar)');
             }
-        };
 
-        decryptMessage();
+            if (!privateKey) {
+                setDecryptedContent('🔒 Mensaje cifrado (necesitas contraseña)');
+                return;
+            }
+
+            const senderPublicKey = message.sender?.publicKey || message.senderPublicKey || otherPublicKey;
+            if (!senderPublicKey) {
+                setDecryptedContent('🔒 (Falta clave pública del contacto)');
+                return;
+            }
+
+            const decrypted = cryptoService.decryptMessage(
+                parsedContent.ciphertext,
+                parsedContent.nonce,
+                privateKey,
+                senderPublicKey
+            );
+            setDecryptedContent(decrypted);
+        } catch (error) {
+            console.error('Error al descifrar mensaje:', error);
+            setDecryptedContent('🔒 (No se pudo descifrar)');
+        }
     }, [message, isOwnMessage, otherPublicKey]);
 
     const formatTime = (dateString) => {

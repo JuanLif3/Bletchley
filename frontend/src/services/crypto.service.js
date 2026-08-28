@@ -4,6 +4,7 @@ class CryptoService {
     constructor() {
         this.initialized = false;
         this.keyPair = null;
+        this.cachedPrivateKey = null;
     }
 
     async init() {
@@ -11,6 +12,14 @@ class CryptoService {
         await sodium.ready;
         this.initialized = true;
         console.log('CryptoService inicializado');
+    }
+
+    setCachedPrivateKey(privateKey) {
+        this.cachedPrivateKey = privateKey;
+    }
+
+    getCachedPrivateKey() {
+        return this.cachedPrivateKey;
     }
 
     generateKeyPair() {

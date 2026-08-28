@@ -108,7 +108,11 @@ function Chat({ chatId, onBack }) {
     };
 
     const getPrivateKey = () => {
-        let privateKey = localStorage.getItem('privateKey');
+        // Primero intentar con la clave en memoria
+        let privateKey = cryptoService.getCachedPrivateKey();
+        if (privateKey) return privateKey;
+
+        privateKey = localStorage.getItem('privateKey');
         if (!privateKey) {
             const encrypted = JSON.parse(localStorage.getItem('encryptedPrivateKey') || 'null');
             if (encrypted) {
@@ -121,6 +125,7 @@ function Chat({ chatId, onBack }) {
                             password
                         );
                         localStorage.setItem('privateKey', privateKey);
+                        cryptoService.setCachedPrivateKey(privateKey);
                     } catch (e) {
                         alert('Contraseña incorrecta');
                         return null;
@@ -128,6 +133,7 @@ function Chat({ chatId, onBack }) {
                 }
             }
         }
+        if (privateKey) cryptoService.setCachedPrivateKey(privateKey);
         return privateKey;
     };
 
