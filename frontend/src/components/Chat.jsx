@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { messageAPI, chatAPI } from '../services/api';
+import { messageAPI, chatAPI, keysAPI } from '../services/api';
 import websocketService from '../services/websocket';
 import Message from './Message';
 import MessageInput from './MessageInput';
 import '../styles/Chat.css';
 import cryptoService from '../services/crypto.service';
-import { keysAPI } from '../services/api';
 
 function Chat({ chatId, onBack }) {
     const [messages, setMessages] = useState([]);
     const [chat, setChat] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [otherPublicKey, setOtherPublicKey] = useState(null);
     const messagesEndRef = useRef(null);
     const currentUser = JSON.parse(localStorage.getItem('user'));
 
@@ -40,9 +40,20 @@ function Chat({ chatId, onBack }) {
     const loadChatDetails = async () => {
         try {
             const response = await chatAPI.getChatDetails(chatId);
-            setChat(response.data.data);
+            const chatData = response.data.data;
+            setChat(chatData);
+
+            const other = chatData.participants?.find(p => p.userId !== currentUser?.id);
+            if (other) {
+                try {
+                    const pkResponse = await keysAPI.getPublicKey(other.userId);
+                    setOtherPublicKey(pkResponse.data.data.publicKey);
+                } catch (e) {
+                    console.warn("El destinatario aún no tiene clave pública generada");
+                }
+            }
         } catch (err) {
-            console.error('Error:', err);
+            console.error('Error al cargar detalles:', err);
         }
     };
 
@@ -52,7 +63,7 @@ function Chat({ chatId, onBack }) {
             const response = await messageAPI.getMessages(chatId);
             setMessages(response.data.data);
         } catch (err) {
-            console.error('Error:', err);
+            console.error('Error al cargar mensajes:', err);
         } finally {
             setLoading(false);
         }
@@ -62,78 +73,71 @@ function Chat({ chatId, onBack }) {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
-
     const handleSendMessage = async (content) => {
         if (!content.trim()) return;
 
         try {
-            // 1. Obtener la clave pública del destinatario
-            const currentUser = JSON.parse(localStorage.getItem('user'));
-            const chat = await chatAPI.getChatDetails(chatId);
+            const other = chat?.participants?.find(p => p.userId !== currentUser.id);
+            if (!other) return;
 
-            // Encontrar el otro participante
-            const otherParticipant = chat.data.data.participants.find(
-                p => p.userId !== currentUser.id
-            );
+            let recipientPublicKey = otherPublicKey;
 
-            if (!otherParticipant) {
-                console.error('No se encontró el destinatario');
-                return;
-            }
-
-            // 2. Obtener o recuperar la clave pública del destinatario
-            let recipientPublicKey = otherParticipant.publicKey;
             if (!recipientPublicKey) {
-                // Si no está en el chat, pedirla al backend
-                const response = await keysAPI.getPublicKey(otherParticipant.userId);
-                recipientPublicKey = response.data.data.publicKey;
+                try {
+                    const response = await keysAPI.getPublicKey(other.userId);
+                    recipientPublicKey = response.data.data.publicKey;
+                    setOtherPublicKey(recipientPublicKey); // Lo guardamos para los próximos
+                } catch (err) {
+                    alert('🔒 El destinatario aún no ha generado sus claves de cifrado. No puedes enviarle mensajes seguros hasta que inicie sesión.');
+                    return;
+                }
             }
 
-            // 3. Obtener la clave privada del usuario actual (desde localStorage o generarla)
             let userPrivateKey = localStorage.getItem('privateKey');
             if (!userPrivateKey) {
-                // Generar nuevas claves para el usuario
                 const keyPair = cryptoService.generateKeyPair();
                 userPrivateKey = cryptoService.getPrivateKey(keyPair);
                 const publicKey = cryptoService.getPublicKey(keyPair);
 
-                // Guardar clave pública en el backend
                 await keysAPI.savePublicKey(publicKey);
 
-                // Guardar clave privada en localStorage (cifrada con contraseña)
                 const password = prompt('Ingresa tu contraseña para cifrar tu clave privada:');
                 if (password) {
                     const encrypted = cryptoService.encryptPrivateKey(userPrivateKey, password);
                     localStorage.setItem('encryptedPrivateKey', JSON.stringify(encrypted));
-                    localStorage.setItem('privateKey', userPrivateKey); // Temporal, se usará la cifrada
+                    localStorage.setItem('privateKey', userPrivateKey);
                 }
             }
 
-            // 4. Cifrar el mensaje
-            const senderPrivateKey = sodium.from_base64(userPrivateKey);
-            const recipientPublicKeyBytes = sodium.from_base64(recipientPublicKey);
+            const base64ToBytes = (base64) => {
+                const standardBase64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+                const binaryString = window.atob(standardBase64);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                return bytes;
+            };
+
+            const senderPrivateKeyBytes = base64ToBytes(userPrivateKey);
+            const recipientPublicKeyBytes = base64ToBytes(recipientPublicKey);
 
             const encrypted = cryptoService.encryptMessage(
                 content,
-                senderPrivateKey,
+                senderPrivateKeyBytes,
                 recipientPublicKeyBytes
             );
 
-            // 5. Enviar el mensaje cifrado (contiene ciphertext y nonce)
-            const payload = {
-                chatId: chatId,
-                content: encrypted.ciphertext,
-                nonce: encrypted.nonce,
-                encrypted: true
-            };
+            const secureContent = JSON.stringify({
+                ciphertext: encrypted.ciphertext,
+                nonce: encrypted.nonce
+            });
 
-            // Enviar por WebSocket
-            websocketService.sendMessage(chatId, JSON.stringify(payload));
+            websocketService.sendMessage(chatId, secureContent);
 
         } catch (error) {
             console.error('Error al cifrar mensaje:', error);
-            // Fallback: enviar mensaje en texto plano
-            websocketService.sendMessage(chatId, content);
+            alert('❌ Ocurrió un error interno al cifrar el mensaje.');
         }
     };
 
@@ -141,7 +145,7 @@ function Chat({ chatId, onBack }) {
         if (!chat) return 'Chat';
         if (chat.isGroup) return chat.name || 'Grupo';
         const other = chat.participants?.find(p => p.userId !== currentUser?.id);
-        return other?.username || 'Usuario';
+        return other?.user?.username || other?.username || 'Usuario';
     };
 
     if (loading) {
@@ -166,7 +170,13 @@ function Chat({ chatId, onBack }) {
                         <p className="hint">Envía el primer mensaje</p>
                     </div>
                 ) : (
-                    messages.map((msg) => <Message key={msg.id} message={msg} />)
+                    messages.map((msg) => (
+                        <Message
+                            key={msg.id}
+                            message={msg}
+                            otherPublicKey={otherPublicKey}
+                        />
+                    ))
                 )}
                 <div ref={messagesEndRef} />
             </div>

@@ -93,7 +93,7 @@ export class InviteService {
         // 5. Crear nuevo chat (solo si no existe)
         const chat = await this.chatRepository.create({
             isGroup: false,
-            createdBy: invite.creatorId,
+            createdById: invite.creatorId,
         });
 
         // 6. Agregar participantes

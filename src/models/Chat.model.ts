@@ -15,7 +15,7 @@ export class Chat {
     isGroup!: boolean;
 
     @Column({ name: 'created_by', type: 'uuid' })
-    createdBy!: string;
+    createdById!: string;
 
     @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
     createdAt!: Date;
@@ -23,7 +23,7 @@ export class Chat {
     @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
     updatedAt!: Date;
 
-    @ManyToOne(() => User)
+    @ManyToOne(() => User, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'created_by' })
     creator!: User;
 

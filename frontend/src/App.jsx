@@ -7,13 +7,63 @@ import Chat from './components/Chat';
 import AcceptInvite from './components/AcceptInvite';
 import Sidebar from './components/Sidebar';
 import websocketService from './services/websocket';
-import { destructAPI } from './services/api';
+import { keysAPI, destructAPI } from './services/api';
+import cryptoService from './services/crypto.service';
 import './App.css';
+
 
 // Componente principal que maneja el estado
 function MainApp({ user, setUser, selectedChat, setSelectedChat, isMobile }) {
   const navigate = useNavigate();
   const [isPrivacyMode, setIsPrivacyMode] = useState(false);
+
+  useEffect(() => {
+    const initializeKeys = async () => {
+      // 1. Verificamos que el token realmente ya exista en localStorage
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.warn('Esperando a que el token se guarde...');
+        return;
+      }
+
+      let userPrivateKey = localStorage.getItem('privateKey');
+
+      // Si el usuario no tiene claves en este dispositivo, las generamos
+      if (!userPrivateKey) {
+        try {
+          console.log('Generando nuevas claves de cifrado...');
+          const keyPair = cryptoService.generateKeyPair();
+          const privateKey = cryptoService.getPrivateKey(keyPair);
+          const publicKey = cryptoService.getPublicKey(keyPair);
+
+          // Subimos la clave pública al backend inmediatamente
+          await keysAPI.savePublicKey(publicKey);
+
+          // Le pedimos al usuario que proteja su clave privada local
+          const password = prompt('🔒 Crea una contraseña para proteger tus chats (Esta contraseña no se puede recuperar):');
+          if (password) {
+            const encrypted = cryptoService.encryptPrivateKey(privateKey, password);
+            localStorage.setItem('encryptedPrivateKey', JSON.stringify(encrypted));
+            localStorage.setItem('privateKey', privateKey);
+            console.log('✅ Claves generadas y guardadas exitosamente.');
+          } else {
+            // Fallback por si el usuario cancela (solo para desarrollo)
+            localStorage.setItem('privateKey', privateKey);
+          }
+        } catch (error) {
+          console.error('Error al inicializar claves E2EE:', error);
+        }
+      }
+    };
+
+    // 2. Le damos 500ms de ventaja al navegador para que termine de
+    // escribir el localStorage después del Login antes de ejecutar la petición.
+    const timer = setTimeout(() => {
+      initializeKeys();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Cargar estado de privacidad desde localStorage
   useEffect(() => {
@@ -28,6 +78,8 @@ function MainApp({ user, setUser, selectedChat, setSelectedChat, isMobile }) {
     websocketService.disconnect();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('privateKey');
+    localStorage.removeItem('encryptedPrivateKey');
     setUser(null);
     setSelectedChat(null);
     navigate('/');
