@@ -5,7 +5,7 @@ import { MessageService } from '../services/message.service';
 import { UserRepository } from '../repositories/user.repository';
 import { JWTUser } from '../types/jwt.types';
 
-interface WebSocketClient{
+interface WebSocketClient {
     socket: any;
     userId: string;
     chatId?: string;
@@ -22,9 +22,8 @@ export class ChatWebSocketHandler {
         this.userRepository = new UserRepository();
     }
 
-    async handleConnection (fastify: FastifyInstance, socket: any, req: any) {
+    async handleConnection(fastify: FastifyInstance, socket: any, req: any) {
         try {
-            // ! Obtener token de la URL (ws://...?token=xxx)
             const url = new URL(req.url, 'http://localhost');
             const token = url.searchParams.get('token');
 
@@ -37,10 +36,8 @@ export class ChatWebSocketHandler {
                 return;
             }
 
-            // ! Verificar token
             const decoded = jwt.verify(token, env.JWT_SECRET) as JWTUser;
 
-            // ! Verificar que el usuario existe
             const user = await this.userRepository.findById(decoded.userId);
             if (!user) {
                 socket.send(JSON.stringify({
@@ -51,7 +48,6 @@ export class ChatWebSocketHandler {
                 return;
             }
 
-            // ! Registrar cliente
             const clientId = socket.id || Date.now().toString();
             this.clients.set(clientId, {
                 socket,
@@ -61,7 +57,6 @@ export class ChatWebSocketHandler {
 
             console.log(`Usuario ${user.username} conectado`);
 
-            // ! Enviar confirmacion
             socket.send(JSON.stringify({
                 type: 'connected',
                 data: {
@@ -71,12 +66,10 @@ export class ChatWebSocketHandler {
                 }
             }));
 
-            // ! Manejar mensajes entrantes
             socket.on('message', async (message: string) => {
                 await this.handleMessage(clientId, message);
             });
 
-            // ! Manejar desconexion
             socket.on('close', () => {
                 this.clients.delete(clientId);
                 console.log(`Usuario ${user.username} desconectado`);
@@ -86,7 +79,7 @@ export class ChatWebSocketHandler {
             console.error('Error en conexion.', error);
             socket.send(JSON.stringify({
                 type: 'error',
-                data: {message: 'Error de autenticacion'}
+                data: { message: 'Error de autenticacion' }
             }));
             socket.close();
         }
@@ -95,18 +88,16 @@ export class ChatWebSocketHandler {
     private async handleMessage(clientId: string, message: string) {
         try {
             const client = this.clients.get(clientId);
-            if(!client) return;
+            if (!client) return;
 
             const parsed = JSON.parse(message);
 
-            // ! Si el mensaje es para unirse a una chat
             if (parsed.type === 'join') {
                 client.chatId = parsed.chatId;
                 console.log(`${client.username} se unió al chat ${parsed.chatId}`);
                 return;
             }
 
-            // ! Indicador de escritura
             if (parsed.type === 'typing') {
                 const response = {
                     type: 'typing',
@@ -122,20 +113,27 @@ export class ChatWebSocketHandler {
                 return;
             }
 
-            // ! Si es un mensaje de chat
             if (parsed.type === 'message') {
-                const { chatId, content } = parsed;
+                const { chatId, content, tempId } = parsed;
 
-                // ! Guardar en DB
                 const savedMessage = await this.messageService.sendMessage(client.userId, {
                     chatId,
                     content,
                 });
 
-                // ! Obtener info dell usuario que envio el mensaje
+                // ! Enviar confirmación al emisor con el ID real del mensaje
+                const ack = {
+                    type: 'message_ack',
+                    data: {
+                        tempId: tempId,
+                        id: savedMessage.id,
+                        chatId: savedMessage.chatId,
+                    }
+                };
+                client.socket.send(JSON.stringify(ack));
+
                 const sender = await this.userRepository.findById(client.userId);
 
-                // ! Crear respuesta para broadcast
                 const response = {
                     type: 'message',
                     data: {

@@ -6,7 +6,6 @@ class CryptoService {
         this.keyPair = null;
     }
 
-    // * Inicializar libsodium
     async init() {
         if (this.initialized) return;
         await sodium.ready;
@@ -14,29 +13,40 @@ class CryptoService {
         console.log('CryptoService inicializado');
     }
 
-    // * Generar par de claves para un usuario
     generateKeyPair() {
         return sodium.crypto_box_keypair();
     }
 
-    // * Obtener clave pública en base64
     getPublicKey(keypair) {
         return sodium.to_base64(keypair.publicKey);
     }
 
-    // * Obtener clave privada en base64
     getPrivateKey(keypair) {
         return sodium.to_base64(keypair.privateKey);
     }
 
-    // * Cifrar mensaje para un destinatario
-    encryptMessage(message, senderPrivateKey, recipientPublicKey) {
+    // Validar que una cadena sea Base64 válida
+    isValidBase64(str) {
+        try {
+            sodium.from_base64(str);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    encryptMessage(message, senderPrivateKeyBase64, recipientPublicKeyBase64) {
+        // Validar que las claves son Base64 correctas
+        if (!this.isValidBase64(senderPrivateKeyBase64) || !this.isValidBase64(recipientPublicKeyBase64)) {
+            throw new Error('Claves inválidas: se esperaba Base64');
+        }
+
         const nonce = sodium.randombytes_buf(sodium.crypto_box_NONCEBYTES);
         const encrypted = sodium.crypto_box_easy(
             sodium.from_string(message),
             nonce,
-            recipientPublicKey,
-            senderPrivateKey
+            sodium.from_base64(recipientPublicKeyBase64),
+            sodium.from_base64(senderPrivateKeyBase64)
         );
         return {
             ciphertext: sodium.to_base64(encrypted),
@@ -44,32 +54,21 @@ class CryptoService {
         };
     }
 
-    // * Descifrar mensaje
-    decryptMessage(ciphertext, nonce, recipientPrivateKey, senderPublicKey) {
+    decryptMessage(ciphertextBase64, nonceBase64, recipientPrivateKeyBase64, senderPublicKeyBase64) {
+        if (!this.isValidBase64(ciphertextBase64) || !this.isValidBase64(nonceBase64) ||
+            !this.isValidBase64(recipientPrivateKeyBase64) || !this.isValidBase64(senderPublicKeyBase64)) {
+            throw new Error('Datos inválidos: se esperaba Base64');
+        }
+
         const decrypted = sodium.crypto_box_open_easy(
-            sodium.from_base64(ciphertext),
-            sodium.from_base64(nonce),
-            senderPublicKey,
-            recipientPrivateKey
+            sodium.from_base64(ciphertextBase64),
+            sodium.from_base64(nonceBase64),
+            sodium.from_base64(senderPublicKeyBase64),
+            sodium.from_base64(recipientPrivateKeyBase64)
         );
         return sodium.to_string(decrypted);
     }
 
-    // * Generar clave a partir de contraseña (para el usuario)
-    async generateKeysFromPassword(password) {
-        const salt = sodium.from_string('BletchleySalt2024');
-        const key = await sodium.crypto_pwhash(
-            32, // tamaño de la clave
-            sodium.from_string(password),
-            salt,
-            sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE,
-            sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE,
-            sodium.crypto_pwhash_ALG_ARGON2ID13
-        );
-        return key;
-    }
-
-    // * Cifrar clave privada con contraseña
     encryptPrivateKey(privateKey, password) {
         const key = sodium.crypto_generichash(32, sodium.from_string(password));
         const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
@@ -84,7 +83,6 @@ class CryptoService {
         };
     }
 
-    // * Descifrar clave privada con contraseña
     decryptPrivateKey(encryptedPrivateKey, nonce, password) {
         const key = sodium.crypto_generichash(32, sodium.from_string(password));
         const decrypted = sodium.crypto_secretbox_open_easy(

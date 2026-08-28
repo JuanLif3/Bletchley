@@ -13,6 +13,7 @@ function Chat({ chatId, onBack }) {
     const [otherPublicKey, setOtherPublicKey] = useState(null);
     const messagesEndRef = useRef(null);
     const currentUser = JSON.parse(localStorage.getItem('user'));
+    const pendingMessages = useRef({}); // tempId -> { content }
 
     useEffect(() => {
         loadChatDetails();
@@ -21,15 +22,39 @@ function Chat({ chatId, onBack }) {
 
         const handleMessage = (data) => {
             if (data.chatId === chatId) {
-                setMessages(prev => [...prev, data]);
+                setMessages(prev => {
+                    if (prev.some(m => m.id === data.id)) return prev;
+                    return [...prev, data];
+                });
                 setTimeout(scrollToBottom, 50);
             }
         };
 
+        const handleAck = (data) => {
+            if (data.chatId === chatId) {
+                const pending = pendingMessages.current[data.tempId];
+                if (pending) {
+                    // Guardar contenido original en localStorage
+                    const sentMessages = JSON.parse(localStorage.getItem('sentMessages') || '{}');
+                    sentMessages[data.id] = pending.content;
+                    localStorage.setItem('sentMessages', JSON.stringify(sentMessages));
+
+                    // Reemplazar mensaje optimista con el real
+                    setMessages(prev => prev.map(m =>
+                        m.id === data.tempId ? { ...m, id: data.id } : m
+                    ));
+
+                    delete pendingMessages.current[data.tempId];
+                }
+            }
+        };
+
         websocketService.on('message', handleMessage);
+        websocketService.on('message_ack', handleAck);
 
         return () => {
             websocketService.off('message', handleMessage);
+            websocketService.off('message_ack', handleAck);
         };
     }, [chatId]);
 
@@ -61,7 +86,16 @@ function Chat({ chatId, onBack }) {
         try {
             setLoading(true);
             const response = await messageAPI.getMessages(chatId);
-            setMessages(response.data.data);
+            const data = response.data.data;
+            // Si hay mensajes propios, intentar obtener su contenido original de localStorage
+            const sentMessages = JSON.parse(localStorage.getItem('sentMessages') || '{}');
+            const enriched = data.map(msg => {
+                if (msg.senderId === currentUser?.id && sentMessages[msg.id]) {
+                    return { ...msg, content: sentMessages[msg.id] };
+                }
+                return msg;
+            });
+            setMessages(enriched);
         } catch (err) {
             console.error('Error al cargar mensajes:', err);
         } finally {
@@ -71,6 +105,30 @@ function Chat({ chatId, onBack }) {
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    const getPrivateKey = () => {
+        let privateKey = localStorage.getItem('privateKey');
+        if (!privateKey) {
+            const encrypted = JSON.parse(localStorage.getItem('encryptedPrivateKey') || 'null');
+            if (encrypted) {
+                const password = prompt('Ingresa tu contraseña para desbloquear tus mensajes:');
+                if (password) {
+                    try {
+                        privateKey = cryptoService.decryptPrivateKey(
+                            encrypted.ciphertext,
+                            encrypted.nonce,
+                            password
+                        );
+                        localStorage.setItem('privateKey', privateKey);
+                    } catch (e) {
+                        alert('Contraseña incorrecta');
+                        return null;
+                    }
+                }
+            }
+        }
+        return privateKey;
     };
 
     const handleSendMessage = async (content) => {
@@ -86,46 +144,23 @@ function Chat({ chatId, onBack }) {
                 try {
                     const response = await keysAPI.getPublicKey(other.userId);
                     recipientPublicKey = response.data.data.publicKey;
-                    setOtherPublicKey(recipientPublicKey); // Lo guardamos para los próximos
+                    setOtherPublicKey(recipientPublicKey);
                 } catch (err) {
                     alert('🔒 El destinatario aún no ha generado sus claves de cifrado. No puedes enviarle mensajes seguros hasta que inicie sesión.');
                     return;
                 }
             }
 
-            let userPrivateKey = localStorage.getItem('privateKey');
+            const userPrivateKey = getPrivateKey();
             if (!userPrivateKey) {
-                const keyPair = cryptoService.generateKeyPair();
-                userPrivateKey = cryptoService.getPrivateKey(keyPair);
-                const publicKey = cryptoService.getPublicKey(keyPair);
-
-                await keysAPI.savePublicKey(publicKey);
-
-                const password = prompt('Ingresa tu contraseña para cifrar tu clave privada:');
-                if (password) {
-                    const encrypted = cryptoService.encryptPrivateKey(userPrivateKey, password);
-                    localStorage.setItem('encryptedPrivateKey', JSON.stringify(encrypted));
-                    localStorage.setItem('privateKey', userPrivateKey);
-                }
+                alert('No se pudo obtener tu clave privada.');
+                return;
             }
-
-            const base64ToBytes = (base64) => {
-                const standardBase64 = base64.replace(/-/g, '+').replace(/_/g, '/');
-                const binaryString = window.atob(standardBase64);
-                const bytes = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) {
-                    bytes[i] = binaryString.charCodeAt(i);
-                }
-                return bytes;
-            };
-
-            const senderPrivateKeyBytes = base64ToBytes(userPrivateKey);
-            const recipientPublicKeyBytes = base64ToBytes(recipientPublicKey);
 
             const encrypted = cryptoService.encryptMessage(
                 content,
-                senderPrivateKeyBytes,
-                recipientPublicKeyBytes
+                userPrivateKey,
+                recipientPublicKey
             );
 
             const secureContent = JSON.stringify({
@@ -133,7 +168,25 @@ function Chat({ chatId, onBack }) {
                 nonce: encrypted.nonce
             });
 
-            websocketService.sendMessage(chatId, secureContent);
+            const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+            // Guardar pendiente para el ack
+            pendingMessages.current[tempId] = { content };
+
+            // Agregar mensaje optimista
+            const optimisticMessage = {
+                id: tempId,
+                chatId,
+                senderId: currentUser.id,
+                senderUsername: currentUser.username,
+                content: content, // contenido original
+                createdAt: new Date().toISOString(),
+                isLocal: true
+            };
+            setMessages(prev => [...prev, optimisticMessage]);
+
+            // Enviar por WebSocket con tempId
+            websocketService.sendMessage(chatId, secureContent, tempId);
 
         } catch (error) {
             console.error('Error al cifrar mensaje:', error);

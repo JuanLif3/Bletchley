@@ -49,20 +49,18 @@ class WebSocketService {
         }
     }
 
-    // * Métodos específicos
     joinChat(chatId) {
         this.send({ type: 'join', chatId });
     }
 
-    sendMessage(chatId, content) {
-        this.send({ type: 'message', chatId, content });
+    sendMessage(chatId, content, tempId = null) {
+        this.send({ type: 'message', chatId, content, tempId });
     }
 
     sendTyping(chatId, isTyping) {
         this.send({ type: 'typing', chatId, isTyping });
     }
 
-    // * Sistema de eventos
     on(event, callback) {
         if (!this.listeners[event]) {
             this.listeners[event] = [];

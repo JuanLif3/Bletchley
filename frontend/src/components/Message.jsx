@@ -2,17 +2,6 @@ import { useState, useEffect } from 'react';
 import cryptoService from '../services/crypto.service';
 import '../styles/Message.css';
 
-// Función nativa para convertir Base64 a Bytes
-const base64ToBytes = (base64) => {
-    const standardBase64 = base64.replace(/-/g, '+').replace(/_/g, '/');
-    const binaryString = window.atob(standardBase64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-    }
-    return bytes;
-};
-
 function Message({ message, otherPublicKey }) {
     const currentUser = JSON.parse(localStorage.getItem('user'));
     const isOwnMessage = message.senderId === currentUser?.id;
@@ -20,15 +9,32 @@ function Message({ message, otherPublicKey }) {
 
     useEffect(() => {
         const decryptMessage = async () => {
+            // Si es mensaje propio y ya tiene contenido local (optimista), mostrar directamente
+            if (isOwnMessage && message.isLocal) {
+                setDecryptedContent(message.content);
+                return;
+            }
+
+            // Si es mensaje propio y NO es local, intentar obtener contenido de localStorage
+            if (isOwnMessage && !message.isLocal) {
+                const sentMessages = JSON.parse(localStorage.getItem('sentMessages') || '{}');
+                if (sentMessages[message.id]) {
+                    setDecryptedContent(sentMessages[message.id]);
+                    return;
+                } else {
+                    setDecryptedContent('✅ Mensaje enviado');
+                    return;
+                }
+            }
+
             try {
-// 1. Extraer el JSON cifrado (Soporta String u Objeto)
+                // Extraer JSON cifrado
                 let parsedContent;
                 try {
                     parsedContent = typeof message.content === 'string'
                         ? JSON.parse(message.content)
                         : message.content;
                 } catch (e) {
-                    // Si falla, es un mensaje viejo en texto plano
                     setDecryptedContent(String(message.content));
                     return;
                 }
@@ -38,24 +44,23 @@ function Message({ message, otherPublicKey }) {
                     return;
                 }
 
-                if (!parsedContent.ciphertext || !parsedContent.nonce) {
-                    setDecryptedContent(message.content);
-                    return;
-                }
-
-                // 2. Obtener tu clave privada
+                // Obtener clave privada
                 let privateKey = localStorage.getItem('privateKey');
                 if (!privateKey) {
                     const encrypted = JSON.parse(localStorage.getItem('encryptedPrivateKey') || 'null');
                     if (encrypted) {
                         const password = prompt('Ingresa tu contraseña para descifrar mensajes:');
                         if (password) {
-                            privateKey = cryptoService.decryptPrivateKey(
-                                encrypted.ciphertext,
-                                encrypted.nonce,
-                                password
-                            );
-                            localStorage.setItem('privateKey', privateKey);
+                            try {
+                                privateKey = cryptoService.decryptPrivateKey(
+                                    encrypted.ciphertext,
+                                    encrypted.nonce,
+                                    password
+                                );
+                                localStorage.setItem('privateKey', privateKey);
+                            } catch (decryptionError) {
+                                console.error('Contraseña incorrecta o datos corruptos');
+                            }
                         }
                     }
                 }
@@ -65,22 +70,19 @@ function Message({ message, otherPublicKey }) {
                     return;
                 }
 
-                // 3. Determinar la clave pública correcta
-                const targetPublicKey = isOwnMessage
-                    ? otherPublicKey // Si lo enviaste tú, usas la clave del destinatario
-                    : (message.sender?.publicKey || message.senderPublicKey || otherPublicKey);
+                // Para mensajes de otros, usar la clave pública del remitente
+                const senderPublicKey = message.sender?.publicKey || message.senderPublicKey || otherPublicKey;
 
-                if (!targetPublicKey) {
+                if (!senderPublicKey) {
                     setDecryptedContent('🔒 (Falta clave pública del contacto)');
                     return;
                 }
 
-                // 4. Descifrar con los bytes correctos
                 const decrypted = cryptoService.decryptMessage(
                     parsedContent.ciphertext,
                     parsedContent.nonce,
-                    base64ToBytes(privateKey),
-                    base64ToBytes(targetPublicKey)
+                    privateKey,
+                    senderPublicKey
                 );
 
                 setDecryptedContent(decrypted);
